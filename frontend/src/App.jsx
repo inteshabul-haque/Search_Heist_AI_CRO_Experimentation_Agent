@@ -59,9 +59,9 @@ export default function App() {
 
       analysisType === "funnel"
 
-        ? "http://127.0.0.1:8000/upload-funnel"
+        ? "https://search-heist-ai-backend.onrender.com/upload-funnel"
 
-        : "http://127.0.0.1:8000/upload-experiment";
+        : "https://search-heist-ai-backend.onrender.com/upload-experiment";
 
     try {
 
@@ -123,7 +123,7 @@ export default function App() {
       // API call
       const response = await axios.post(
 
-        "http://127.0.0.1:8000/ask-ai",
+        "https://search-heist-ai-backend.onrender.com/ask-ai",
 
         {
           question
