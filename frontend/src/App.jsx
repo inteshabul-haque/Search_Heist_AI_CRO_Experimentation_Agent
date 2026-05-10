@@ -16,6 +16,12 @@ import {
 
 import "./index.css";
 
+// ---------------------------------
+// ENV API URL
+// ---------------------------------
+
+const API_URL = import.meta.env.VITE_API_URL;
+
 export default function App() {
 
   // -----------------------------
@@ -59,9 +65,9 @@ export default function App() {
 
       analysisType === "funnel"
 
-        ? "http://127.0.0.1:8000/upload-funnel"
+        ? `${API_URL}/upload-funnel`
 
-        : "http://127.0.0.1:8000/upload-experiment";
+        : `${API_URL}/upload-experiment`;
 
     try {
 
@@ -75,7 +81,7 @@ export default function App() {
       // Error validation
       if (response.data.error) {
 
-        alert(response.data.message);
+        alert(response.data.error);
 
         return;
       }
@@ -123,7 +129,7 @@ export default function App() {
       // API call
       const response = await axios.post(
 
-        "http://127.0.0.1:8000/ask-ai",
+        `${API_URL}/ask-ai`,
 
         {
           question
