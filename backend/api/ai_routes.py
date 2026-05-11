@@ -1,8 +1,15 @@
+import os
+import google.generativeai as genai
+from dotenv import load_dotenv
 from fastapi import APIRouter
 from fastapi import UploadFile
 from fastapi import File
 
 import pandas as pd
+
+load_dotenv()
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+model = genai.GenerativeModel("gemini-2.5-flash")
 
 from analytics.funnel_analysis import (
     analyze_funnel
@@ -138,22 +145,21 @@ async def upload_experiment(
 @router.post("/ask-ai")
 
 async def ask_ai(
-
     request: QuestionRequest
 ):
 
     try:
 
-        result = run_master_agent(
+        response = model.generate_content(
             request.question
         )
 
-        return result
+        return {
+            "answer": response.text
+        }
 
     except Exception as e:
 
         return {
-
-            "answer":
-                f"AI Error: {str(e)}"
+            "answer": f"Gemini Error: {str(e)}"
         }

@@ -8,3 +8,4 @@ scipy
 statsmodels
 openpyxl
 requests
+google-generativeai

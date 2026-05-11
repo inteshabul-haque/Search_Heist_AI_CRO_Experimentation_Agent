@@ -1,8 +1,20 @@
+import os
+import google.generativeai as genai
+
+from dotenv import load_dotenv
+from pydantic import BaseModel
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.routes import router
 from api.ai_routes import router as ai_router
+
+load_dotenv()
+
+genai.configure(
+    api_key=os.getenv("GEMINI_API_KEY")
+)
+
 
 app = FastAPI(
     title="Search Heist AI",
