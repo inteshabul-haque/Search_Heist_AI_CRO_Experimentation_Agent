@@ -271,3 +271,27 @@ body {
 
   line-height: 1.5;
 }
+.markdown-response {
+  line-height: 1.8;
+  font-size: 15px;
+  color: white;
+}
+
+.markdown-response h1,
+.markdown-response h2,
+.markdown-response h3 {
+  color: #ff004f;
+  margin-top: 20px;
+}
+
+.markdown-response ul {
+  padding-left: 20px;
+}
+
+.markdown-response li {
+  margin-bottom: 10px;
+}
+
+.markdown-response p {
+  margin-bottom: 14px;
+}

@@ -1,3 +1,4 @@
+import ReactMarkdown from "react-markdown";
 import React from "react";
 
 import { useState } from "react";
@@ -489,9 +490,11 @@ export default function App() {
 
                 </strong>
 
-                <p>
-                  {chat.text}
-                </p>
+                <div className="markdown-response">
+                    <ReactMarkdown>
+                      {chat.text}
+                    </ReactMarkdown>
+                </div>
 
               </div>
             )
