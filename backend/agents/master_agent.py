@@ -1,6 +1,13 @@
-# Global memory
+# ============================================================
+# GLOBAL MEMORY
+# ============================================================
+
 LATEST_RESULTS = {}
 
+
+# ============================================================
+# SAVE RESULTS
+# ============================================================
 
 def save_results(results):
 
@@ -9,13 +16,20 @@ def save_results(results):
     LATEST_RESULTS = results
 
 
+# ============================================================
+# MASTER AGENT
+# ============================================================
+
 def run_master_agent(question):
 
     global LATEST_RESULTS
 
     question = question.lower()
 
-    # No dataset uploaded
+    # --------------------------------------------------------
+    # NO DATA
+    # --------------------------------------------------------
+
     if not LATEST_RESULTS:
 
         return {
@@ -24,7 +38,10 @@ def run_master_agent(question):
                 "No dataset analyzed yet. Upload a dataset first."
         }
 
-    # Extract data
+    # --------------------------------------------------------
+    # EXTRACT RESULTS
+    # --------------------------------------------------------
+
     kpis = LATEST_RESULTS.get(
         "kpis",
         {}
@@ -40,59 +57,143 @@ def run_master_agent(question):
         []
     )
 
-    # Conversion Rate
-    if (
-        "conversion" in question
-    ):
+    significance = LATEST_RESULTS.get(
+        "significance_test",
+        {}
+    )
+
+    segmentation = LATEST_RESULTS.get(
+        "segmentation_analysis",
+        {}
+    )
+
+    segment_insights = segmentation.get(
+        "segment_insights",
+        []
+    )
+
+    execution_trace = LATEST_RESULTS.get(
+        "execution_trace",
+        []
+    )
+
+    # --------------------------------------------------------
+    # CONVERSION RATE
+    # --------------------------------------------------------
+
+    if "conversion" in question:
+
+        uplift = significance.get(
+            "uplift_percent",
+            "N/A"
+        )
 
         return {
 
             "answer":
-                f"Current conversion rate is {kpis.get('conversion_rate', 'N/A')}%."
+
+                f"Current conversion rate is "
+                f"{kpis.get('conversion_rate', 'N/A')}%. "
+                f"Experiment uplift observed: "
+                f"{uplift}%."
         }
 
-    # Users
+    # --------------------------------------------------------
+    # USERS
+    # --------------------------------------------------------
+
     elif (
+
         "how many user" in question
         or "total user" in question
         or "users" in question
+
     ):
 
         return {
 
             "answer":
-                f"Total users are {kpis.get('total_users', 'N/A')}."
+
+                f"Total users analyzed: "
+                f"{kpis.get('total_users', 'N/A')}."
         }
 
-    # Revenue
+    # --------------------------------------------------------
+    # REVENUE
+    # --------------------------------------------------------
+
     elif (
+
         "revenue" in question
         or "sales" in question
+
     ):
 
         return {
 
             "answer":
-                f"Total revenue is {kpis.get('total_revenue', 'N/A')}."
+
+                f"Total revenue generated: "
+                f"${kpis.get('total_revenue', 'N/A')}."
         }
 
+    # --------------------------------------------------------
     # AOV
+    # --------------------------------------------------------
+
     elif (
+
         "aov" in question
         or "avg order value" in question
+        or "average order value" in question
+
     ):
 
         return {
 
             "answer":
-                f"Average Order Value is {kpis.get('avg_order_value', 'N/A')}."
+
+                f"Average Order Value (AOV) "
+                f"is ${kpis.get('avg_order_value', 'N/A')}."
         }
 
-    # Alerts
+    # --------------------------------------------------------
+    # SIGNIFICANCE TEST
+    # --------------------------------------------------------
+
     elif (
+
+        "significance" in question
+        or "confidence" in question
+        or "p value" in question
+        or "uplift" in question
+
+    ):
+
+        return {
+
+            "answer":
+
+                f"P-value: "
+                f"{significance.get('p_value', 'N/A')}. "
+
+                f"Uplift observed: "
+                f"{significance.get('uplift_percent', 'N/A')}%. "
+
+                f"{significance.get('interpretation', '')}"
+        }
+
+    # --------------------------------------------------------
+    # ALERTS
+    # --------------------------------------------------------
+
+    elif (
+
         "alert" in question
         or "issue" in question
         or "problem" in question
+        or "risk" in question
+
     ):
 
         if alerts:
@@ -100,6 +201,7 @@ def run_master_agent(question):
             return {
 
                 "answer":
+
                     alerts[0]["message"]
             }
 
@@ -109,10 +211,47 @@ def run_master_agent(question):
                 "No major alerts detected."
         }
 
-    # Insights
+    # --------------------------------------------------------
+    # SEGMENTATION
+    # --------------------------------------------------------
+
     elif (
+
+        "segment" in question
+        or "audience" in question
+        or "device" in question
+        or "channel" in question
+        or "customer type" in question
+
+    ):
+
+        if segment_insights:
+
+            return {
+
+                "answer":
+
+                    "\n".join(
+                        segment_insights
+                    )
+            }
+
+        return {
+
+            "answer":
+                "No segmentation insights available."
+        }
+
+    # --------------------------------------------------------
+    # INSIGHTS
+    # --------------------------------------------------------
+
+    elif (
+
         "insight" in question
         or "summary" in question
+        or "analysis" in question
+
     ):
 
         if insights:
@@ -120,7 +259,10 @@ def run_master_agent(question):
             return {
 
                 "answer":
-                    "\n".join(insights)
+
+                    "\n".join(
+                        insights
+                    )
             }
 
         return {
@@ -129,10 +271,52 @@ def run_master_agent(question):
                 "No insights available."
         }
 
-    # Greeting
+    # --------------------------------------------------------
+    # EXECUTION TRACE
+    # --------------------------------------------------------
+
     elif (
+
+        "trace" in question
+        or "workflow" in question
+        or "agent" in question
+
+    ):
+
+        if execution_trace:
+
+            formatted_trace = [
+
+                f"{step['agent']} → "
+                f"{step['action']}"
+
+                for step in execution_trace
+            ]
+
+            return {
+
+                "answer":
+
+                    "\n".join(
+                        formatted_trace
+                    )
+            }
+
+        return {
+
+            "answer":
+                "No execution trace available."
+        }
+
+    # --------------------------------------------------------
+    # GREETING
+    # --------------------------------------------------------
+
+    elif (
+
         "hi" in question
         or "hello" in question
+
     ):
 
         return {
@@ -147,12 +331,19 @@ Ask me about:
 - revenue
 - alerts
 - insights
-- experiment performance
+- segmentation
+- significance test
+- uplift
 - funnel drop-offs
+- experiment performance
+- execution trace
 """
         }
 
-    # Default
+    # --------------------------------------------------------
+    # DEFAULT
+    # --------------------------------------------------------
+
     else:
 
         return {
@@ -161,14 +352,19 @@ Ask me about:
                 """
 AI analyzed the latest uploaded dataset successfully.
 
-You can ask:
+You can ask about:
 - conversion rate
-- total users
 - revenue
+- AOV
+- significance test
+- uplift %
+- segmentation
+- customer behavior
+- device performance
 - alerts
 - insights
-- AOV
+- experiment analysis
 - funnel issues
-- experiment insights
+- execution trace
 """
         }

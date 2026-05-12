@@ -1,14 +1,24 @@
 import pandas as pd
 
 
+# ============================================================
+# FUNNEL ANALYSIS
+# ============================================================
+
 def analyze_funnel(df):
 
-    # Lowercase columns
+    # --------------------------------------------------------
+    # LOWERCASE COLUMNS
+    # --------------------------------------------------------
+
     df.columns = df.columns.str.lower()
 
     print(df.columns)
 
-    # Required columns
+    # --------------------------------------------------------
+    # REQUIRED COLUMNS
+    # --------------------------------------------------------
+
     required_columns = [
 
         "visited",
@@ -18,14 +28,21 @@ def analyze_funnel(df):
         "purchase"
     ]
 
-    # Missing validation
+    # --------------------------------------------------------
+    # VALIDATE MISSING COLUMNS
+    # --------------------------------------------------------
+
     missing_columns = [
 
         col for col in required_columns
+
         if col not in df.columns
     ]
 
-    # Error response
+    # --------------------------------------------------------
+    # ERROR RESPONSE
+    # --------------------------------------------------------
+
     if missing_columns:
 
         return {
@@ -42,8 +59,13 @@ def analyze_funnel(df):
                 required_columns
         }
 
-    # Funnel stage values
-    visited = int(df["visited"].sum())
+    # --------------------------------------------------------
+    # FUNNEL STAGE VALUES
+    # --------------------------------------------------------
+
+    visited = int(
+        df["visited"].sum()
+    )
 
     product_view = int(
         df["product_view"].sum()
@@ -61,89 +83,269 @@ def analyze_funnel(df):
         df["purchase"].sum()
     )
 
-    # Conversion Rate
+    # --------------------------------------------------------
+    # CONVERSION RATE
+    # --------------------------------------------------------
+
     conversion_rate = (
 
-        round(
-            purchase / visited * 100,
-            2
+        float(
+
+            round(
+
+                (
+                    purchase / visited
+                ) * 100,
+
+                2
+            )
         )
 
         if visited > 0
 
-        else "N/A"
+        else 0.0
     )
 
-    # Dropoff
+    # --------------------------------------------------------
+    # DROPOFF RATE
+    # --------------------------------------------------------
+
     dropoff_rate = (
 
-        round(
-            100 - conversion_rate,
-            2
+        float(
+
+            round(
+
+                100 - conversion_rate,
+
+                2
+            )
         )
 
-        if conversion_rate != "N/A"
+        if visited > 0
 
-        else "N/A"
+        else 0.0
     )
 
-    # Revenue
+    # --------------------------------------------------------
+    # REVENUE
+    # --------------------------------------------------------
+
     revenue = (
 
-        round(
-            float(df["revenue"].sum()),
-            2
+        float(
+
+            round(
+
+                df["revenue"].sum(),
+
+                2
+            )
         )
 
         if "revenue" in df.columns
 
-        else "N/A"
+        else 0.0
     )
 
+    # --------------------------------------------------------
     # AOV
+    # --------------------------------------------------------
+
     avg_order_value = (
 
-        round(
-            revenue / purchase,
-            2
+        float(
+
+            round(
+
+                revenue / purchase,
+
+                2
+            )
         )
 
-        if (
-            revenue != "N/A"
-            and purchase > 0
-        )
+        if purchase > 0
 
-        else "N/A"
+        else 0.0
     )
+
+    # --------------------------------------------------------
+    # STAGE-WISE DROP-OFF
+    # --------------------------------------------------------
+
+    stage_dropoffs = {
+
+        "visit_to_product_view":
+
+            float(
+
+                round(
+
+                    (
+                        (
+                            visited
+                            - product_view
+                        )
+                        / visited
+                    ) * 100,
+
+                    2
+                )
+            )
+
+            if visited > 0
+
+            else 0.0,
+
+        "product_view_to_cart":
+
+            float(
+
+                round(
+
+                    (
+                        (
+                            product_view
+                            - add_to_cart
+                        )
+                        / product_view
+                    ) * 100,
+
+                    2
+                )
+            )
+
+            if product_view > 0
+
+            else 0.0,
+
+        "cart_to_checkout":
+
+            float(
+
+                round(
+
+                    (
+                        (
+                            add_to_cart
+                            - checkout
+                        )
+                        / add_to_cart
+                    ) * 100,
+
+                    2
+                )
+            )
+
+            if add_to_cart > 0
+
+            else 0.0,
+
+        "checkout_to_purchase":
+
+            float(
+
+                round(
+
+                    (
+                        (
+                            checkout
+                            - purchase
+                        )
+                        / checkout
+                    ) * 100,
+
+                    2
+                )
+            )
+
+            if checkout > 0
+
+            else 0.0
+    }
+
+    # --------------------------------------------------------
+    # LARGEST DROPOFF
+    # --------------------------------------------------------
+
+    largest_dropoff_stage = max(
+        stage_dropoffs,
+        key=stage_dropoffs.get
+    )
+
+    largest_dropoff_value = (
+        stage_dropoffs[
+            largest_dropoff_stage
+        ]
+    )
+
+    # --------------------------------------------------------
+    # FUNNEL EFFICIENCY
+    # --------------------------------------------------------
+
+    funnel_efficiency = (
+
+        float(
+
+            round(
+
+                (
+                    purchase / visited
+                ) * 100,
+
+                2
+            )
+        )
+
+        if visited > 0
+
+        else 0.0
+    )
+
+    # --------------------------------------------------------
+    # RETURN
+    # --------------------------------------------------------
 
     return {
 
         "kpis": {
 
             "conversion_rate":
-                conversion_rate,
+                float(conversion_rate),
 
             "total_users":
-                visited,
+                int(visited),
 
             "total_revenue":
-                revenue,
+                float(revenue),
 
             "avg_order_value":
-                avg_order_value
+                float(avg_order_value),
+
+            "funnel_efficiency":
+                float(funnel_efficiency)
         },
 
         "alerts": [
 
             {
 
-                "severity": "high",
+                "severity":
+                    "high",
 
                 "message":
-                    f"Drop-off rate is {dropoff_rate}%"
+
+                    f"Largest funnel drop-off "
+                    f"detected at "
+                    f"{largest_dropoff_stage.replace('_', ' ')} "
+                    f"with {largest_dropoff_value}% leakage."
             }
 
         ],
+
+        "stage_dropoffs":
+
+            stage_dropoffs,
 
         "chart_data": {
 
@@ -160,29 +362,49 @@ def analyze_funnel(df):
 
                 "values": [
 
-                    visited,
-                    product_view,
-                    add_to_cart,
-                    checkout,
-                    purchase
+                    int(visited),
+                    int(product_view),
+                    int(add_to_cart),
+                    int(checkout),
+                    int(purchase)
                 ]
             }
         },
 
+        "recommendations": [
+
+            "Optimize product detail pages to improve add-to-cart engagement.",
+
+            "Reduce checkout friction to minimize lower-funnel abandonment.",
+
+            "Consider retargeting strategies for cart abandoners.",
+
+            "Review mobile funnel experience for usability issues."
+        ],
+
         "autonomous_insights": [
 
-            "Funnel analysis completed.",
+            "Funnel analysis completed successfully.",
 
-            "Largest drop-off detected in lower funnel.",
+            f"Largest funnel leakage detected at "
+            f"{largest_dropoff_stage.replace('_', ' ')} "
+            f"with {largest_dropoff_value}% drop-off.",
 
-            "Optimization opportunities identified."
+            f"Overall funnel conversion rate is "
+            f"{conversion_rate}%",
+
+            f"Average Order Value currently stands at "
+            f"${avg_order_value}.",
+
+            "Optimization opportunities identified across funnel stages."
         ],
 
         "execution_trace": [
 
             {
 
-                "agent": "Funnel Agent",
+                "agent":
+                    "Funnel Agent",
 
                 "action":
                     "Calculated funnel stage performance."
@@ -190,7 +412,26 @@ def analyze_funnel(df):
 
             {
 
-                "agent": "Insight Agent",
+                "agent":
+                    "Drop-Off Analysis Agent",
+
+                "action":
+                    "Detected largest funnel leakage stage."
+            },
+
+            {
+
+                "agent":
+                    "Revenue Agent",
+
+                "action":
+                    "Calculated revenue and AOV metrics."
+            },
+
+            {
+
+                "agent":
+                    "Insight Agent",
 
                 "action":
                     "Generated autonomous CRO insights."
