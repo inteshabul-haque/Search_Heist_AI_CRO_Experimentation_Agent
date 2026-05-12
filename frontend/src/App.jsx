@@ -45,6 +45,59 @@ export default function App() {
     useState([]);
 
   // -----------------------------
+  // LOAD DEMO DATA
+  // -----------------------------
+
+  const loadDemoData = async () => {
+
+    try {
+
+      const demoFile =
+
+        analysisType === "funnel"
+
+          ? "/demo/funnel_data.csv"
+
+          : "/demo/ab_test_data.csv";
+
+      const response = await fetch(
+        demoFile
+      );
+
+      const blob = await response.blob();
+
+      const demoLoadedFile = new File(
+
+        [blob],
+
+        analysisType === "funnel"
+
+          ? "funnel_data.csv"
+
+          : "ab_test_data.csv",
+
+        {
+          type: "text/csv"
+        }
+      );
+
+      setFile(demoLoadedFile);
+
+      alert(
+        "Demo dataset loaded successfully!"
+      );
+
+    } catch (error) {
+
+      console.error(error);
+
+      alert(
+        "Failed to load demo data."
+      );
+    }
+  };
+
+  // -----------------------------
   // ANALYZE DATASET
   // -----------------------------
 
@@ -263,6 +316,20 @@ export default function App() {
             setFile(e.target.files[0])
           }
         />
+
+        <br />
+        <br />
+
+        {/* DEMO BUTTON */}
+        <button
+
+          className="demo-btn"
+
+          onClick={loadDemoData}
+
+        >
+          LOAD DEMO DATA
+        </button>
 
         <br />
         <br />
@@ -491,9 +558,11 @@ export default function App() {
                 </strong>
 
                 <div className="markdown-response">
-                    <ReactMarkdown>
-                      {chat.text}
-                    </ReactMarkdown>
+
+                  <ReactMarkdown>
+                    {chat.text}
+                  </ReactMarkdown>
+
                 </div>
 
               </div>
