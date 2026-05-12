@@ -306,16 +306,29 @@ export default function App() {
         <br />
 
         {/* FILE INPUT */}
-        <input
+ <input
 
-          type="file"
+  type="file"
 
-          accept=".csv"
+  accept=".csv"
 
-          onChange={(e) =>
-            setFile(e.target.files[0])
-          }
-        />
+  onChange={(e) =>
+    setFile(e.target.files[0])
+  }
+/>
+
+{
+  file && (
+
+    <p className="selected-file">
+
+      ACTIVE FILE:
+      {" "}
+      {file.name}
+
+    </p>
+  )
+}
 
         <br />
         <br />

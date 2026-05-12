@@ -295,3 +295,13 @@ body {
 .markdown-response p {
   margin-bottom: 14px;
 }
+.selected-file {
+
+  margin-top: 12px;
+
+  color: #00ff88;
+
+  font-weight: bold;
+
+  font-size: 14px;
+}
