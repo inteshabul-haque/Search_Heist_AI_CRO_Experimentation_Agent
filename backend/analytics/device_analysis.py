@@ -1,167 +1,59 @@
-# ============================================================
-# DEVICE PERFORMANCE ANALYSIS
-# ============================================================
+def analyze_device_segments(df):
 
-def analyze_device_performance(df):
+    # -----------------------------------
+    # POSSIBLE DEVICE COLUMNS
+    # -----------------------------------
 
-    # --------------------------------------------------------
-    # LOWERCASE COLUMNS
-    # --------------------------------------------------------
+    possible_columns = [
 
-    df.columns = df.columns.str.lower()
+        "device",
+        "device_type",
+        "platform"
+    ]
 
-    # --------------------------------------------------------
-    # VALIDATION
-    # --------------------------------------------------------
+    device_column = None
 
-    if "device" not in df.columns:
+    for col in possible_columns:
 
-        return {
+        if col in df.columns:
 
-            "error":
-                "Device column not found."
-        }
+            device_column = col
 
-    device_summary = {}
+            break
 
-    device_insights = []
+    # -----------------------------------
+    # NO DEVICE DATA
+    # -----------------------------------
 
-    # --------------------------------------------------------
-    # GROUP BY DEVICE
-    # --------------------------------------------------------
+    if not device_column:
 
-    grouped = df.groupby("device")
+        return None
 
-    best_device = None
+    # -----------------------------------
+    # CALCULATE DISTRIBUTION
+    # -----------------------------------
 
-    best_cr = 0.0
+    total = len(df)
 
-    # --------------------------------------------------------
-    # LOOP DEVICES
-    # --------------------------------------------------------
+    distribution = (
 
-    for device, data in grouped:
+        df[device_column]
 
-        users = len(data)
+        .value_counts(normalize=True)
 
-        conversions = (
-            data["converted"].sum()
-        )
+        * 100
+    )
 
-        revenue = (
+    segments = []
 
-            data["revenue"].sum()
+    for device, pct in distribution.items():
 
-            if "revenue" in df.columns
+        segments.append({
 
-            else 0
-        )
+            "label": str(device),
 
-        conversion_rate = (
+            "value":
+            f"{round(float(pct), 1)}%"
+        })
 
-            (conversions / users) * 100
-
-            if users > 0
-
-            else 0
-        )
-
-        avg_order_value = (
-
-            revenue / conversions
-
-            if conversions > 0
-
-            else 0
-        )
-
-        # ----------------------------------------------------
-        # TRACK BEST DEVICE
-        # ----------------------------------------------------
-
-        if conversion_rate > best_cr:
-
-            best_cr = float(conversion_rate)
-
-            best_device = str(device)
-
-        # ----------------------------------------------------
-        # SAVE DEVICE METRICS
-        # ----------------------------------------------------
-
-        device_summary[str(device)] = {
-
-            "users":
-
-                int(users),
-
-            "conversions":
-
-                int(conversions),
-
-            "conversion_rate":
-
-                float(round(conversion_rate, 2)),
-
-            "revenue":
-
-                float(round(revenue, 2)),
-
-            "avg_order_value":
-
-                float(round(avg_order_value, 2))
-        }
-
-    # --------------------------------------------------------
-    # GENERATE INSIGHTS
-    # --------------------------------------------------------
-
-    for device, metrics in device_summary.items():
-
-        device_insights.append(
-
-            f"{str(device).title()} users achieved "
-            f"{metrics['conversion_rate']}% "
-            f"conversion rate across "
-            f"{metrics['users']} users, generating "
-            f"${metrics['revenue']} revenue with "
-            f"${metrics['avg_order_value']} AOV."
-        )
-
-    # --------------------------------------------------------
-    # BEST DEVICE INSIGHT
-    # --------------------------------------------------------
-
-    if best_device:
-
-        device_insights.insert(
-
-            0,
-
-            f"{best_device.title()} users delivered "
-            f"the strongest conversion performance "
-            f"at {float(round(best_cr, 2))}% conversion rate."
-        )
-
-    # --------------------------------------------------------
-    # RETURN
-    # --------------------------------------------------------
-
-    return {
-
-        "best_device":
-
-            str(best_device)
-
-            if best_device
-
-            else None,
-
-        "device_insights":
-
-            list(device_insights),
-
-        "device_summary":
-
-            dict(device_summary)
-    }
+    return segments

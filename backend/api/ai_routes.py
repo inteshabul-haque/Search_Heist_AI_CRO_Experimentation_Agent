@@ -1,33 +1,45 @@
 import os
+
 import pandas as pd
+
 import google.generativeai as genai
 
 from dotenv import load_dotenv
 
-from fastapi import APIRouter
-from fastapi import UploadFile
-from fastapi import File
+from fastapi import (
+    APIRouter,
+    UploadFile,
+    File
+)
 
 from pydantic import BaseModel
 
-from prompts.experiment_prompts import build_experiment_prompt
+from prompts.experiment_prompts import (
+    build_experiment_prompt
+)
 
-from analytics.funnel_analysis import analyze_funnel
-from analytics.experiment_analysis import analyze_experiment
-from analytics.segmentation_analysis import analyze_segments
-from analytics.device_analysis import analyze_device_performance
+from analytics.funnel_analysis import (
+    analyze_funnel
+)
 
-from agents.master_agent import save_results
+from analytics.experiment_analysis import (
+    analyze_experiment
+)
 
+from agents.master_agent import (
+    save_results
+)
 
 # ====================================================
-# LOAD ENV VARIABLES
+# LOAD ENV
 # ====================================================
 
 load_dotenv()
 
 genai.configure(
-    api_key=os.getenv("GEMINI_API_KEY")
+    api_key=os.getenv(
+        "GEMINI_API_KEY"
+    )
 )
 
 model = genai.GenerativeModel(
@@ -35,7 +47,6 @@ model = genai.GenerativeModel(
 )
 
 router = APIRouter()
-
 
 # ====================================================
 # SAVE DATASET
@@ -57,7 +68,6 @@ def save_latest_dataset(df):
         index=False
     )
 
-
 # ====================================================
 # REQUEST MODEL
 # ====================================================
@@ -65,7 +75,6 @@ def save_latest_dataset(df):
 class QuestionRequest(BaseModel):
 
     question: str
-
 
 # ====================================================
 # HOME
@@ -76,9 +85,9 @@ class QuestionRequest(BaseModel):
 def home():
 
     return {
-        "message": "Search Heist AI Backend Running"
+        "message":
+        "Search Heist AI Backend Running"
     }
-
 
 # ====================================================
 # HEALTH
@@ -89,9 +98,9 @@ def home():
 def health():
 
     return {
-        "status": "healthy"
+        "status":
+        "healthy"
     }
-
 
 # ====================================================
 # FUNNEL ANALYSIS
@@ -111,18 +120,6 @@ async def upload_funnel(
 
         results = analyze_funnel(df)
 
-        segmentation_results = analyze_segments(df)
-
-        results[
-            "segmentation_analysis"
-        ] = segmentation_results
-
-        device_results = analyze_device_performance(df)
-
-        results[
-            "device_analysis"
-        ] = device_results
-
         save_results(results)
 
         return results
@@ -133,7 +130,6 @@ async def upload_funnel(
             "error": True,
             "message": str(e)
         }
-
 
 # ====================================================
 # EXPERIMENT ANALYSIS
@@ -153,18 +149,6 @@ async def upload_experiment(
 
         results = analyze_experiment(df)
 
-        segmentation_results = analyze_segments(df)
-
-        results[
-            "segmentation_analysis"
-        ] = segmentation_results
-
-        device_results = analyze_device_performance(df)
-
-        results[
-            "device_analysis"
-        ] = device_results
-
         save_results(results)
 
         return results
@@ -175,7 +159,6 @@ async def upload_experiment(
             "error": True,
             "message": str(e)
         }
-
 
 # ====================================================
 # ASK AI
@@ -197,35 +180,53 @@ async def ask_ai(
 
             return {
                 "answer":
-                "Please upload a dataset first."
+                "Please upload dataset first."
             }
 
         df = pd.read_csv(dataset_path)
 
-        analysis_results = analyze_experiment(df)
+        # ------------------------------
+        # DETECT DATASET TYPE
+        # ------------------------------
 
-        segmentation_results = analyze_segments(df)
+        if (
 
-        analysis_results[
-            "segmentation_analysis"
-        ] = segmentation_results
+            "variant" in df.columns
 
-        device_results = analyze_device_performance(df)
+            and
 
-        analysis_results[
-            "device_analysis"
-        ] = device_results
+            "converted" in df.columns
+        ):
+
+            analysis_results = (
+                analyze_experiment(df)
+            )
+
+        else:
+
+            analysis_results = (
+                analyze_funnel(df)
+            )
+
+        # ------------------------------
+        # PROMPT
+        # ------------------------------
 
         system_prompt = build_experiment_prompt(
+
             df=df,
-            analysis_results=analysis_results
+
+            analysis_results=
+            analysis_results
         )
 
         final_prompt = f"""
+
 {system_prompt}
 
 User Question:
 {request.question}
+
 """
 
         response = model.generate_content(

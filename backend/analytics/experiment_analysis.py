@@ -1,353 +1,458 @@
 import pandas as pd
 
-from analytics.significance_test import (
-    run_significance_test
+from analytics.statistics_engine import (
+
+    calculate_z_test,
+    confidence_interval,
+    calculate_uplift
+)
+
+from analytics.executive_ai_insights import (
+    generate_executive_insights
+)
+
+from analytics.tactical_alert_engine import (
+    generate_tactical_alerts
+)
+
+from analytics.device_analysis import (
+    analyze_device_segments
+)
+
+from utils.json_safe import (
+    make_json_safe
 )
 
 
 def analyze_experiment(df):
 
-    # ------------------------------------------------
-    # Lowercase Columns
-    # ------------------------------------------------
+    # -----------------------------------
+    # VALIDATION
+    # -----------------------------------
 
-    df.columns = df.columns.str.lower()
+    required_columns = [
 
-    # ------------------------------------------------
-    # Detect Required Columns
-    # ------------------------------------------------
+        "variant",
+        "converted"
+    ]
 
-    variant_col = None
-    conversion_col = None
-    revenue_col = None
+    for col in required_columns:
 
-    for col in df.columns:
+        if col not in df.columns:
 
-        if "variant" in col:
-            variant_col = col
+            return {
+                "error":
+                f"Missing required column: {col}"
+            }
 
-        if (
-            "converted" in col
-            or "conversion" in col
-        ):
-            conversion_col = col
+    # -----------------------------------
+    # GROUP VARIANTS
+    # -----------------------------------
 
-        if "revenue" in col:
-            revenue_col = col
+    grouped = df.groupby("variant")
 
-    # ------------------------------------------------
-    # Validation
-    # ------------------------------------------------
+    experiment_chart = {
 
-    missing_columns = []
+        "labels": [],
+        "values": []
+    }
 
-    if not variant_col:
-        missing_columns.append("variant")
+    variant_summary = {}
 
-    if not conversion_col:
-        missing_columns.append("converted")
+    # -----------------------------------
+    # VARIANT METRICS
+    # -----------------------------------
 
-    if missing_columns:
+    for variant, group in grouped:
 
-        return {
+        users = int(len(group))
 
-            "error": True,
+        conversions = int(
 
-            "message":
-                "Column names do not match required A/B test format.",
-
-            "missing_columns":
-                missing_columns,
-
-            "required_columns": [
-                "variant",
+            group[
                 "converted"
-            ]
-        }
-
-    # ------------------------------------------------
-    # Conversion Rate by Variant
-    # ------------------------------------------------
-
-    grouped = (
-
-        df.groupby(variant_col)
-        [conversion_col]
-        .mean()
-        * 100
-    )
-
-    labels = list(grouped.index)
-
-    values = [
-
-        round(v, 2)
-        for v in grouped.values
-    ]
-
-    # ------------------------------------------------
-    # Best Variant
-    # ------------------------------------------------
-
-    best_variant = labels[
-        values.index(max(values))
-    ]
-
-    worst_variant = labels[
-        values.index(min(values))
-    ]
-
-    best_value = max(values)
-
-    worst_value = min(values)
-
-    uplift_difference = round(
-        best_value - worst_value,
-        2
-    )
-
-    # ------------------------------------------------
-    # Revenue Metrics
-    # ------------------------------------------------
-
-    revenue = (
-
-        round(
-            float(df[revenue_col].sum()),
-            2
+            ].sum()
         )
 
-        if revenue_col
+        conversion_rate = float(
 
-        else "N/A"
+            round(
+
+                (
+                    conversions / users
+                ) * 100,
+
+                2
+            )
+        )
+
+        ci = confidence_interval(
+
+            conversions,
+            users
+        )
+
+        total_revenue = (
+
+            float(
+
+                round(
+
+                    group[
+                        "revenue"
+                    ].sum(),
+
+                    2
+                )
+            )
+
+            if "revenue" in group.columns
+
+            else "N/A"
+        )
+
+        variant_summary[str(variant)] = {
+
+            "users":
+            int(users),
+
+            "conversions":
+            int(conversions),
+
+            "conversion_rate":
+            float(conversion_rate),
+
+            "confidence_interval":
+            ci,
+
+            "revenue":
+            total_revenue
+        }
+
+        experiment_chart["labels"].append(
+            str(variant)
+        )
+
+        experiment_chart["values"].append(
+            float(conversion_rate)
+        )
+
+    # -----------------------------------
+    # NEED 2 VARIANTS
+    # -----------------------------------
+
+    variants = list(
+        variant_summary.keys()
     )
 
-    total_converted = int(
-        df[conversion_col].sum()
+    if len(variants) < 2:
+
+        return {
+            "error":
+            "Need at least 2 variants"
+        }
+
+    # -----------------------------------
+    # CONTROL VS VARIANT
+    # -----------------------------------
+
+    control = variants[0]
+    variant = variants[1]
+
+    control_data = variant_summary[
+        control
+    ]
+
+    variant_data = variant_summary[
+        variant
+    ]
+
+    z_test = calculate_z_test(
+
+        control_data["conversions"],
+        control_data["users"],
+
+        variant_data["conversions"],
+        variant_data["users"]
+    )
+
+    uplift = float(
+
+        calculate_uplift(
+
+            control_data[
+                "conversion_rate"
+            ],
+
+            variant_data[
+                "conversion_rate"
+            ]
+        )
+    )
+
+    # -----------------------------------
+    # WINNER
+    # -----------------------------------
+
+    winning_variant = max(
+
+        variant_summary,
+
+        key=lambda x:
+        variant_summary[x][
+            "conversion_rate"
+        ]
+    )
+
+    winning_conversion_rate = float(
+
+        variant_summary[
+            winning_variant
+        ]["conversion_rate"]
+    )
+
+    # -----------------------------------
+    # GLOBAL KPIs
+    # -----------------------------------
+
+    total_users = int(len(df))
+
+    total_conversions = int(
+
+        df[
+            "converted"
+        ].sum()
+    )
+
+    overall_conversion_rate = float(
+
+        round(
+
+            (
+                total_conversions /
+                total_users
+            ) * 100,
+
+            2
+        )
+    )
+
+    # -----------------------------------
+    # REVENUE
+    # -----------------------------------
+
+    total_revenue = (
+
+        float(
+
+            round(
+
+                df[
+                    "revenue"
+                ].sum(),
+
+                2
+            )
+        )
+
+        if "revenue" in df.columns
+
+        else "N/A"
     )
 
     avg_order_value = (
 
-        round(
-            revenue / total_converted,
-            2
+        float(
+
+            round(
+
+                df[
+                    "revenue"
+                ].sum()
+
+                / total_conversions,
+
+                2
+            )
         )
 
         if (
-            revenue != "N/A"
-            and total_converted > 0
+            "revenue" in df.columns
+            and total_conversions > 0
         )
 
         else "N/A"
     )
 
-    # ------------------------------------------------
-    # Statistical Significance Test
-    # ------------------------------------------------
+    # -----------------------------------
+    # DEVICE SEGMENTS
+    # -----------------------------------
 
-    variant_stats = (
-
-        df.groupby(variant_col)
-        [conversion_col]
-        .agg(["sum", "count"])
-        .sort_index()
-
+    device_segments = analyze_device_segments(
+        df
     )
 
-    if len(variant_stats) >= 2:
+    # -----------------------------------
+    # AI INSIGHTS
+    # -----------------------------------
 
-        variants = list(
-            variant_stats.index
+    executive_payload = {
+
+        "uplift_percent":
+        float(uplift),
+
+        "significant":
+        bool(
+            z_test["significant"]
+        ),
+
+        "winning_variant":
+        str(winning_variant),
+
+        "winning_conversion_rate":
+        float(
+            winning_conversion_rate
         )
+    }
 
-        a_variant = variants[0]
-        b_variant = variants[1]
+    insights = generate_executive_insights(
+        executive_payload
+    )
 
-        a_converted = int(
-            variant_stats.loc[
-                a_variant,
-                "sum"
-            ]
+    # -----------------------------------
+    # ALERTS
+    # -----------------------------------
+
+    alerts = generate_tactical_alerts({
+
+        "conversion_rate":
+        float(
+            overall_conversion_rate
+        ),
+
+        "uplift":
+        float(uplift),
+
+        "p_value":
+        float(
+            z_test["p_value"]
         )
+    })
 
-        a_total = int(
-            variant_stats.loc[
-                a_variant,
-                "count"
-            ]
-        )
+    # -----------------------------------
+    # EXECUTION TRACE
+    # -----------------------------------
 
-        b_converted = int(
-            variant_stats.loc[
-                b_variant,
-                "sum"
-            ]
-        )
+    execution_trace = [
 
-        b_total = int(
-            variant_stats.loc[
-                b_variant,
-                "count"
-            ]
-        )
+        {
+            "agent":
+            "Experiment Analyzer",
 
-        significance_results = (
-            run_significance_test(
-                a_converted,
-                a_total,
-                b_converted,
-                b_total
-            )
-        )
+            "action":
+            "Processed variant metrics."
+        },
 
-    else:
+        {
+            "agent":
+            "Statistics Engine",
 
-        significance_results = {
+            "action":
+            "Calculated z-test and confidence intervals."
+        },
 
-            "p_value": None,
+        {
+            "agent":
+            "Uplift Engine",
 
-            "significant": False,
+            "action":
+            f"Computed uplift of {uplift}%."
+        },
 
-            "uplift_percent": 0,
+        {
+            "agent":
+            "Tactical Alert Engine",
 
-            "interpretation":
-                "Not enough variants for testing."
+            "action":
+            "Generated tactical CRO alerts."
         }
-
-    # ------------------------------------------------
-    # Alert Severity Logic
-    # ------------------------------------------------
-
-    uplift_percent = significance_results.get(
-        "uplift_percent",
-        0
-    )
-
-    if uplift_percent >= 15:
-        severity = "high"
-
-    elif uplift_percent >= 5:
-        severity = "medium"
-
-    else:
-        severity = "low"
-
-    # ------------------------------------------------
-    # Executive Insights
-    # ------------------------------------------------
-
-    executive_insights = [
-
-        (
-            f"{best_variant} achieved the "
-            f"highest conversion rate at "
-            f"{best_value}%."
-        ),
-
-        (
-            f"Conversion uplift versus "
-            f"{worst_variant} was "
-            f"{uplift_difference}%."
-        ),
-
-        (
-            f"Statistical significance test "
-            f"returned p-value of "
-            f"{significance_results['p_value']}."
-        ),
-
-        significance_results[
-            "interpretation"
-        ],
-
-        (
-            "Results suggest optimization "
-            "opportunities for rollout "
-            "and further experimentation."
-        )
     ]
 
-    # ------------------------------------------------
-    # Final Response
-    # ------------------------------------------------
+    # -----------------------------------
+    # FINAL RESPONSE
+    # -----------------------------------
 
-    return {
+    response = {
 
         "kpis": {
 
             "conversion_rate":
-                best_value,
+            float(
+                overall_conversion_rate
+            ),
 
             "total_users":
-                len(df),
+            int(total_users),
+
+            "winning_variant":
+            str(winning_variant),
+
+            "uplift":
+            float(uplift),
+
+            "p_value":
+            float(
+                z_test["p_value"]
+            ),
 
             "total_revenue":
-                revenue,
+            total_revenue,
 
             "avg_order_value":
-                avg_order_value
+            avg_order_value
         },
-
-        "significance_test":
-            significance_results,
-
-        "alerts": [
-
-            {
-
-                "severity": severity,
-
-                "message":
-
-                    f"{best_variant} improved "
-                    f"conversion performance by "
-                    f"{uplift_percent}% with "
-                    f"p-value "
-                    f"{significance_results['p_value']}."
-            }
-
-        ],
 
         "chart_data": {
 
-            "experiment_chart": {
-
-                "labels": labels,
-
-                "values": values
-            }
+            "experiment_chart":
+            experiment_chart
         },
 
+        "variant_summary":
+        variant_summary,
+
+        "statistical_test": {
+
+            "z_score":
+            float(
+                z_test["z_score"]
+            ),
+
+            "p_value":
+            float(
+                z_test["p_value"]
+            ),
+
+            "significant":
+            bool(
+                z_test["significant"]
+            )
+        },
+
+        "device_segments":
+        device_segments,
+
+        "alerts":
+        alerts,
+
         "autonomous_insights":
-            executive_insights,
+        insights,
 
-        "execution_trace": [
+        "execution_trace":
+        execution_trace,
 
-            {
-
-                "agent":
-                    "Experiment Agent",
-
-                "action":
-                    "Calculated experiment performance."
-            },
-
-            {
-
-                "agent":
-                    "Statistics Agent",
-
-                "action":
-                    "Performed statistical significance testing."
-            },
-
-            {
-
-                "agent":
-                    "Insight Agent",
-
-                "action":
-                    "Generated executive-level business insights."
-            }
-        ]
+        "winning_variant":
+        str(winning_variant)
     }
+
+    return make_json_safe(response)

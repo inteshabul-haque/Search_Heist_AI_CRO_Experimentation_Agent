@@ -1,52 +1,87 @@
-import ReactMarkdown from "react-markdown";
 import React from "react";
+
+import ReactMarkdown from "react-markdown";
 
 import { useState } from "react";
 
 import axios from "axios";
 
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid
-} from "recharts";
-
 import "./index.css";
 
-// ---------------------------------
-// ENV API URL
-// ---------------------------------
+// ----------------------------------------------------
+// DASHBOARD COMPONENTS
+// ----------------------------------------------------
+
+import ExecutiveKPIs
+from "./components/dashboard/ExecutiveKPIs";
+
+import KPIAnalyticsCard
+from "./components/dashboard/KPIAnalyticsCard";
+
+import ExperimentSummaryPanel
+from "./components/dashboard/ExperimentSummaryPanel";
+
+import SegmentComparisonCard
+from "./components/dashboard/SegmentComparisonCard";
+
+// ----------------------------------------------------
+// CHARTS
+// ----------------------------------------------------
+
+import FunnelDropoffChart
+from "./components/charts/FunnelDropoffChart";
+
+import VariantPerformanceChart
+from "./components/charts/VariantPerformanceChart";
+
+import ConfidenceIntervalChart
+from "./components/charts/ConfidenceIntervalChart";
+
+// ----------------------------------------------------
+// INSIGHTS
+// ----------------------------------------------------
+
+import AIInsightFeed
+from "./components/insights/AIInsightFeed";
+
+import ExecutiveRecommendation
+from "./components/insights/ExecutiveRecommendation";
+
+import AITimeline
+from "./components/insights/AITimeline";
+
+// ----------------------------------------------------
+// ENV
+// ----------------------------------------------------
 
 const API_URL = import.meta.env.VITE_API_URL;
 
 export default function App() {
 
-  // -----------------------------
-  // STATES
-  // -----------------------------
+  // ----------------------------------------------------
+  // STATE
+  // ----------------------------------------------------
 
   const [file, setFile] = useState(null);
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] =
+    useState(false);
 
-  const [results, setResults] = useState(null);
+  const [results, setResults] =
+    useState(null);
 
-  const [question, setQuestion] = useState("");
+  const [question, setQuestion] =
+    useState("");
 
   const [analysisType, setAnalysisType] =
     useState("experiment");
 
-  // Chat history
   const [chatHistory, setChatHistory] =
     useState([]);
 
-  // -----------------------------
+  // ----------------------------------------------------
   // LOAD DEMO DATA
-  // -----------------------------
+  // ----------------------------------------------------
 
   const loadDemoData = async () => {
 
@@ -97,15 +132,17 @@ export default function App() {
     }
   };
 
-  // -----------------------------
+  // ----------------------------------------------------
   // ANALYZE DATASET
-  // -----------------------------
+  // ----------------------------------------------------
 
   const handleAnalyze = async () => {
 
     if (!file) {
 
-      alert("Upload CSV dataset first.");
+      alert(
+        "Upload dataset first."
+      );
 
       return;
     }
@@ -114,7 +151,6 @@ export default function App() {
 
     formData.append("file", file);
 
-    // Dynamic endpoint
     const endpoint =
 
       analysisType === "funnel"
@@ -132,17 +168,8 @@ export default function App() {
         formData
       );
 
-      // Error validation
-      if (response.data.error) {
-
-        alert(response.data.error);
-
-        return;
-      }
-
       setResults(response.data);
 
-      // Reset old chat after new upload
       setChatHistory([]);
 
     } catch (error) {
@@ -157,9 +184,9 @@ export default function App() {
     }
   };
 
-  // -----------------------------
+  // ----------------------------------------------------
   // ASK AI
-  // -----------------------------
+  // ----------------------------------------------------
 
   const handleAskAI = async () => {
 
@@ -167,7 +194,6 @@ export default function App() {
 
     try {
 
-      // Add user message
       const updatedHistory = [
 
         ...chatHistory,
@@ -180,7 +206,6 @@ export default function App() {
 
       setChatHistory(updatedHistory);
 
-      // API call
       const response = await axios.post(
 
         `${API_URL}/ask-ai`,
@@ -190,50 +215,27 @@ export default function App() {
         }
       );
 
-      // Safe AI response
-      const aiText = Array.isArray(
-        response.data.answer
-      )
-
-        ? response.data.answer.join("\n\n")
-
-        : String(
-            response.data.answer || ""
-          );
-
-      // Add AI response
       setChatHistory([
 
         ...updatedHistory,
 
         {
           role: "ai",
-          text: aiText
+          text: response.data.answer
         }
       ]);
 
-      // Clear input
       setQuestion("");
 
     } catch (error) {
 
       console.error(error);
-
-      setChatHistory([
-
-        ...chatHistory,
-
-        {
-          role: "ai",
-          text: "AI system failure."
-        }
-      ]);
     }
   };
 
-  // -----------------------------
+  // ----------------------------------------------------
   // CHART DATA
-  // -----------------------------
+  // ----------------------------------------------------
 
   const experimentChart =
     results?.chart_data?.experiment_chart;
@@ -252,15 +254,16 @@ export default function App() {
 
     : [];
 
-  // -----------------------------
+  // ----------------------------------------------------
   // UI
-  // -----------------------------
+  // ----------------------------------------------------
 
   return (
 
     <div className="app-container">
 
       {/* HEADER */}
+
       <div className="header">
 
         <div>
@@ -281,10 +284,10 @@ export default function App() {
 
       </div>
 
-      {/* UPLOAD PANEL */}
+      {/* UPLOAD */}
+
       <Panel title="UPLOAD DATASET">
 
-        {/* SELECT ANALYSIS TYPE */}
         <select
 
           value={analysisType}
@@ -293,14 +296,7 @@ export default function App() {
             setAnalysisType(e.target.value)
           }
 
-          style={{
-            marginBottom: "20px",
-            padding: "12px",
-            background: "#090909",
-            color: "white",
-            border: "1px solid #ff003c",
-            borderRadius: "10px"
-          }}
+          className="dropdown"
         >
 
           <option value="experiment">
@@ -316,7 +312,6 @@ export default function App() {
         <br />
         <br />
 
-        {/* FILE INPUT */}
         <input
 
           type="file"
@@ -344,21 +339,17 @@ export default function App() {
         <br />
         <br />
 
-        {/* DEMO BUTTON */}
         <button
 
           className="demo-btn"
 
           onClick={loadDemoData}
-
         >
+
           LOAD DEMO DATA
+
         </button>
 
-        <br />
-        <br />
-
-        {/* ANALYZE BUTTON */}
         <button
 
           className="main-button"
@@ -369,7 +360,7 @@ export default function App() {
           {
             loading
 
-              ? "PROFESSOR IS ANALYZING..."
+              ? "PROFESSOR ANALYZING..."
 
               : "START ANALYSIS"
           }
@@ -378,148 +369,284 @@ export default function App() {
 
       </Panel>
 
-      {/* KPI CARDS */}
-      {results?.kpis && (
+      {/* EXECUTIVE KPIs */}
 
-        <div className="kpi-grid">
+      {
+        results?.kpis && (
 
-          <KPI
-            title="CONVERSION RATE"
-            value={`${results.kpis.conversion_rate}`}
+          <ExecutiveKPIs
+            kpis={results.kpis}
           />
 
-          <KPI
-            title="TOTAL REVENUE"
-            value={`${results.kpis.total_revenue}`}
-          />
+        )
+      }
 
-          <KPI
-            title="AVG ORDER VALUE"
-            value={`${results.kpis.avg_order_value}`}
-          />
+      {/* MINI KPI GRID */}
 
-          <KPI
-            title="TOTAL USERS"
-            value={`${results.kpis.total_users}`}
-          />
+      {
+        results?.kpis && (
 
-        </div>
-      )}
+          <div className="analytics-mini-grid">
+
+            <KPIAnalyticsCard
+
+              title="UPLIFT"
+
+              value={`${results?.kpis?.uplift || 0}%`}
+
+              subtitle="Variant uplift"
+
+              color="#39ff88"
+
+              trendData={[
+
+                { value: 10 },
+                { value: 18 },
+                { value: 25 },
+                { value: 33 },
+                { value: 45 }
+              ]}
+            />
+
+            <KPIAnalyticsCard
+
+              title="P-VALUE"
+
+              value={
+                results?.kpis?.p_value || 0
+              }
+
+              subtitle="Statistical confidence"
+
+              color="#ffd000"
+
+              trendData={[
+
+                { value: 0.4 },
+                { value: 0.3 },
+                { value: 0.2 },
+                { value: 0.1 },
+                { value: 0.05 }
+              ]}
+            />
+
+            <KPIAnalyticsCard
+
+              title="TOTAL USERS"
+
+              value={
+                results?.kpis?.total_users || 0
+              }
+
+              subtitle="Experiment traffic"
+
+              color="#ffffff"
+
+              trendData={[
+
+                { value: 300 },
+                { value: 500 },
+                { value: 800 },
+                { value: 1200 },
+                { value: 1700 }
+              ]}
+            />
+
+          </div>
+        )
+      }
 
       {/* ALERTS */}
-      {results?.alerts && (
 
-        <Panel title="TACTICAL ALERTS">
+      {
+        results?.alerts && (
 
-          {results.alerts.map(
+          <Panel title="TACTICAL ALERTS">
 
-            (alert, index) => (
+            {
 
-              <div
-                key={index}
-                className="alert-card"
-              >
+              results.alerts.map(
 
-                <strong>
-                  {alert.severity.toUpperCase()}
-                </strong>
+                (alert, index) => (
 
-                <p>
-                  {alert.message}
-                </p>
+                  <div
 
-              </div>
-            )
-          )}
+                    key={index}
 
-        </Panel>
-      )}
+                    className={`alert-card ${alert.severity}`}
+                  >
 
-      {/* CHART */}
-      {chartData.length > 0 && (
+                    <strong>
+                      {alert.severity.toUpperCase()}
+                    </strong>
 
-        <Panel title="ANALYTICS PERFORMANCE">
+                    <p>
+                      {alert.message}
+                    </p>
 
-          <ResponsiveContainer
-            width="100%"
-            height={350}
-          >
+                  </div>
+                )
+              )
+            }
 
-            <BarChart data={chartData}>
+          </Panel>
+        )
+      }
 
-              <CartesianGrid stroke="#222" />
+      {/* SUMMARY */}
 
-              <XAxis dataKey="variant" />
+      {
+        results?.statistical_test && (
 
-              <YAxis />
+          <ExperimentSummaryPanel
 
-              <Tooltip />
+            winner={
+              results.winning_variant
+            }
 
-              <Bar
-                dataKey="conversion_rate"
-                fill="#ff003c"
+            uplift={
+              results.kpis?.uplift
+            }
+
+            pValue={
+              results.kpis?.p_value
+            }
+
+            significant={
+              results.statistical_test?.significant
+            }
+
+          />
+        )
+      }
+
+      {/* RECOMMENDATION */}
+
+      {
+        results?.statistical_test && (
+
+          <ExecutiveRecommendation
+
+            uplift={
+              results.kpis?.uplift
+            }
+
+            significant={
+              results.statistical_test?.significant
+            }
+
+          />
+        )
+      }
+
+      {/* CHART GRID */}
+
+      <div className="chart-grid">
+
+        {
+          chartData.length > 0 && (
+
+            <Panel title="VARIANT PERFORMANCE">
+
+              <VariantPerformanceChart
+                data={chartData}
               />
 
-            </BarChart>
+            </Panel>
+          )
+        }
 
-          </ResponsiveContainer>
+        {
+          results?.variant_summary && (
 
-        </Panel>
-      )}
+            <Panel title="CONFIDENCE INTERVALS">
 
-      {/* INSIGHTS */}
-      {results?.autonomous_insights && (
+              <ConfidenceIntervalChart
 
-        <Panel title="AUTONOMOUS INSIGHTS">
+                variantSummary={
+                  results.variant_summary
+                }
 
-          {results.autonomous_insights.map(
+              />
 
-            (insight, index) => (
+            </Panel>
+          )
+        }
 
-              <div
-                key={index}
-                className="insight-card"
-              >
+      </div>
 
-                {insight}
+      {/* FUNNEL */}
 
-              </div>
-            )
-          )}
+      {
+        results?.funnel_data && (
 
-        </Panel>
-      )}
+          <Panel title="FUNNEL PERFORMANCE">
 
-      {/* EXECUTION TRACE */}
-      {results?.execution_trace && (
+            <FunnelDropoffChart
+              data={results.funnel_data}
+            />
 
-        <Panel title="PROFESSOR THINKING TRACE">
+          </Panel>
+        )
+      }
 
-          {results.execution_trace.map(
+      {/* DEVICE SEGMENTS */}
 
-            (step, index) => (
+      {
+        results?.device_segments && (
 
-              <div
-                key={index}
-                className="trace-card"
-              >
+          <SegmentComparisonCard
 
-                <strong>
-                  {step.agent}
-                </strong>
+            title="DEVICE SEGMENTS"
 
-                <p>
-                  {step.action}
-                </p>
+            segments={
+              results.device_segments
+            }
 
-              </div>
-            )
-          )}
+          />
+        )
+      }
 
-        </Panel>
-      )}
+      {/* AI INSIGHTS */}
 
-      {/* AI CHAT */}
+      {
+        results?.autonomous_insights && (
+
+          <Panel title="AI CRO INSIGHTS">
+
+            <AIInsightFeed
+
+              insights={
+                results.autonomous_insights
+              }
+
+            />
+
+          </Panel>
+        )
+      }
+
+      {/* AI TIMELINE */}
+
+      {
+        results?.execution_trace && (
+
+          <Panel title="AI EXECUTION TRACE">
+
+            <AITimeline
+
+              executionTrace={
+                results.execution_trace
+              }
+
+            />
+
+          </Panel>
+        )
+      }
+
+      {/* ASK PROFESSOR */}
+
       <Panel title="ASK THE PROFESSOR">
 
         <input
@@ -548,58 +675,60 @@ export default function App() {
 
         </button>
 
-        {/* CHAT HISTORY */}
         <div className="chat-container">
 
-          {chatHistory.map(
+          {
 
-            (chat, index) => (
+            chatHistory.map(
 
-              <div
+              (chat, index) => (
 
-                key={index}
+                <div
 
-                className={
+                  key={index}
 
-                  chat.role === "user"
+                  className={
 
-                    ? "user-message"
-
-                    : "ai-message"
-                }
-              >
-
-                <strong>
-
-                  {
                     chat.role === "user"
 
-                      ? "YOU"
+                      ? "user-message"
 
-                      : "PROFESSOR"
+                      : "ai-message"
                   }
+                >
 
-                </strong>
-
-                <div className="markdown-response">
-
-                  <ReactMarkdown>
+                  <strong>
 
                     {
-                      Array.isArray(chat.text)
+                      chat.role === "user"
 
-                        ? chat.text.join("\n\n")
+                        ? "YOU"
 
-                        : String(chat.text || "")
+                        : "PROFESSOR"
                     }
 
-                  </ReactMarkdown>
+                  </strong>
+
+                  <div className="markdown-response">
+
+                    <ReactMarkdown>
+
+                      {
+                        Array.isArray(chat.text)
+
+                          ? chat.text.join("\n\n")
+
+                          : String(chat.text || "")
+                      }
+
+                    </ReactMarkdown>
+
+                  </div>
 
                 </div>
-
-              </div>
+              )
             )
-          )}
+          }
 
         </div>
 
@@ -609,9 +738,9 @@ export default function App() {
   );
 }
 
-// -----------------------------
-// PANEL COMPONENT
-// -----------------------------
+// ----------------------------------------------------
+// PANEL
+// ----------------------------------------------------
 
 function Panel({
 
@@ -629,29 +758,6 @@ function Panel({
       </h2>
 
       {children}
-
-    </div>
-  );
-}
-
-// -----------------------------
-// KPI COMPONENT
-// -----------------------------
-
-function KPI({
-
-  title,
-  value
-
-}) {
-
-  return (
-
-    <div className="kpi-card">
-
-      <p>{title}</p>
-
-      <h1>{value}</h1>
 
     </div>
   );
