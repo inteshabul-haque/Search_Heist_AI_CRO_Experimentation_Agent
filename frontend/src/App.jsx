@@ -190,6 +190,17 @@ export default function App() {
         }
       );
 
+      // Safe AI response
+      const aiText = Array.isArray(
+        response.data.answer
+      )
+
+        ? response.data.answer.join("\n\n")
+
+        : String(
+            response.data.answer || ""
+          );
+
       // Add AI response
       setChatHistory([
 
@@ -197,7 +208,7 @@ export default function App() {
 
         {
           role: "ai",
-          text: response.data.answer
+          text: aiText
         }
       ]);
 
@@ -306,29 +317,29 @@ export default function App() {
         <br />
 
         {/* FILE INPUT */}
- <input
+        <input
 
-  type="file"
+          type="file"
 
-  accept=".csv"
+          accept=".csv"
 
-  onChange={(e) =>
-    setFile(e.target.files[0])
-  }
-/>
+          onChange={(e) =>
+            setFile(e.target.files[0])
+          }
+        />
 
-{
-  file && (
+        {
+          file && (
 
-    <p className="selected-file">
+            <p className="selected-file">
 
-      ACTIVE FILE:
-      {" "}
-      {file.name}
+              ACTIVE FILE:
+              {" "}
+              {file.name}
 
-    </p>
-  )
-}
+            </p>
+          )
+        }
 
         <br />
         <br />
@@ -573,7 +584,15 @@ export default function App() {
                 <div className="markdown-response">
 
                   <ReactMarkdown>
-                    {chat.text}
+
+                    {
+                      Array.isArray(chat.text)
+
+                        ? chat.text.join("\n\n")
+
+                        : String(chat.text || "")
+                    }
+
                   </ReactMarkdown>
 
                 </div>

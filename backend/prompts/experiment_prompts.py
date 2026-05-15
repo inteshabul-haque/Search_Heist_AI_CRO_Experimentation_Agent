@@ -1,63 +1,50 @@
 import pandas as pd
 
 
-# ============================================================
-# EXPERIMENT PROMPT BUILDER
-# ============================================================
+def build_experiment_prompt(df=None, analysis_results=None):
 
-def build_experiment_prompt(df):
+    # Handle missing dataframe
+    if df is None:
 
-    # --------------------------------------------------------
-    # Sample Dataset
-    # --------------------------------------------------------
+        return """
+You are a CRO analyst.
+No dataset provided.
+"""
 
+    # Handle non-dataframe inputs safely
+    if not isinstance(df, pd.DataFrame):
+
+        return f"""
+You are a CRO analyst.
+
+Data:
+{df}
+
+Generate business insights.
+"""
+
+    # Sample data
     sample_data = (
-        df.head(20)
+        df.head(10)
         .to_dict(orient="records")
     )
 
-    # --------------------------------------------------------
-    # Detect Important Columns
-    # --------------------------------------------------------
-
+    # Columns
     columns = list(df.columns)
 
-    # --------------------------------------------------------
-    # Dynamic Prompt
-    # --------------------------------------------------------
+    # Analysis summary
+    analysis_summary = ""
 
+    if analysis_results is not None:
+
+        analysis_summary = str(analysis_results)
+
+    # Final prompt
     prompt = f"""
-You are a senior CRO (Conversion Rate Optimization)
-and experimentation analyst.
+You are a senior CRO analyst.
 
-Your task is to review the provided A/B testing dataset
-and generate an executive-level business summary.
-
-Focus on identifying:
-
-1. Which experiment variant performed best
-2. Conversion rate performance
-3. Revenue impact
-4. Customer engagement behavior
-5. Statistical significance patterns
-6. Behavioral anomalies or risks
-7. Business opportunities
-8. Rollout recommendations
-
-Instructions:
-
-- Generate 3 to 5 concise executive insights
-- Use professional and business-friendly language
-- Avoid technical jargon
-- Focus on actionable recommendations
-- Include supporting metrics where relevant
-- Prioritize the most impactful findings
-- Keep tone suitable for leadership stakeholders
-- Insights should feel dynamic and data-driven
-- Do NOT repeat generic statements
-- Mention uplift, revenue, and confidence trends where possible
-
-Dataset Metadata:
+Analyze this A/B testing dataset and generate
+executive-level business insights.
 
 Columns:
 {columns}
@@ -65,18 +52,17 @@ Columns:
 Total Rows:
 {len(df)}
 
-Sample Dataset:
+Sample Data:
 {sample_data}
 
-Expected Output Format:
+Analysis Results:
+{analysis_summary}
 
-[
-    "Insight 1",
-    "Insight 2",
-    "Insight 3",
-    "Insight 4",
-    "Insight 5"
-]
+Provide:
+- winning variant
+- conversion insights
+- revenue impact
+- business recommendations
 """
 
     return prompt
